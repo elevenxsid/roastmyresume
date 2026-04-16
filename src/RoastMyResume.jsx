@@ -56,27 +56,26 @@ export default function RoastMyResume() {
       savage: "Absolutely roast this resume with savage comedy. Be merciless, funny, and devastatingly accurate. Channel Gordon Ramsay reviewing a bad dish.",
     };
 
+    const prompt = `You are RoastBot — a brutally funny resume roaster for Indian job seekers. You roast resumes with sharp wit, pop culture references, and genuinely useful career advice hidden inside the jokes. You know the Indian job market deeply — TCS, Infosys, fresher culture, MBA rage, "good at MS Office", etc. Always end with 3 actual actionable tips labeled "Redemption Arc:". ${levelInstructions[roastLevel]} Format with bold headers using **text** syntax. Keep it under 350 words.
+
+${resumeText
+  ? `Roast this resume at ${roastLevel} level:\n\n${resumeText.slice(0, 3000)}`
+  : `Roast a generic Indian fresher resume (Computer Science, no real projects, lists MS Office as skill, has an objective statement, has a passport photo). Level: ${roastLevel}`}`;
+
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: `You are RoastBot — a brutally funny resume roaster for Indian job seekers. You roast resumes with sharp wit, pop culture references, and genuinely useful career advice hidden inside the jokes. You know the Indian job market deeply — TCS, Infosys, fresher culture, MBA rage, "good at MS Office", etc. Always end with 3 actual actionable tips labeled "Redemption Arc:" ${levelInstructions[roastLevel]} Format with bold headers using **text** syntax. Keep it under 350 words.`,
-          messages: [
-            {
-              role: "user",
-              content: resumeText
-                ? `Roast this resume at ${roastLevel} level:\n\n${resumeText.slice(0, 3000)}`
-                : `Roast a generic Indian fresher resume (Computer Science, no real projects, lists MS Office as skill, has an objective statement, has a passport photo). Level: ${roastLevel}`,
-            },
-          ],
-        }),
-      });
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_KEY_HERE`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+          }),
+        }
+      );
 
       const data = await response.json();
-      const text = data.content?.find((b) => b.type === "text")?.text || DEMO_ROAST;
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || DEMO_ROAST;
       setRoastResult(text);
       setStep("result");
     } catch {
@@ -86,7 +85,6 @@ export default function RoastMyResume() {
       setLoading(false);
     }
   };
-
   const formatRoast = (text) => {
     return text.split("\n").map((line, i) => {
       const bold = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
