@@ -24,7 +24,7 @@ export default function RoastMyResume() {
   const [resumeText, setResumeText] = useState("");
   const [fileName, setFileName] = useState("");
   const [roastResult, setRoastResult] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [paid, setPaid] = useState(false);
   const [copied, setCopied] = useState(false);
   const [dragOver, setDragOver] = useState(false);
