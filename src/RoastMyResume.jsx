@@ -64,7 +64,7 @@ ${resumeText
 
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_KEY_HERE`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=REACT_APP_GEMINI_`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
