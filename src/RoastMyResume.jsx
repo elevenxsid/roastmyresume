@@ -30,12 +30,30 @@ export default function RoastMyResume() {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef();
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return;
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => setResumeText(e.target.result);
-    reader.readAsText(file);
+
+    if (file.type === "application/pdf") {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.mjs",
+  import.meta.url
+).toString();
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item) => item.str).join(" ") + "\n";
+      }
+      setResumeText(fullText);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => setResumeText(e.target.result);
+      reader.readAsText(file);
+    }
     setStep("upload");
   };
 
@@ -56,26 +74,33 @@ export default function RoastMyResume() {
       savage: "Absolutely roast this resume with savage comedy. Be merciless, funny, and devastatingly accurate. Channel Gordon Ramsay reviewing a bad dish.",
     };
 
-    const prompt = `You are RoastBot — a brutally funny resume roaster for Indian job seekers. You roast resumes with sharp wit, pop culture references, and genuinely useful career advice hidden inside the jokes. You know the Indian job market deeply — TCS, Infosys, fresher culture, MBA rage, "good at MS Office", etc. Always end with 3 actual actionable tips labeled "Redemption Arc:". ${levelInstructions[roastLevel]} Format with bold headers using **text** syntax. Keep it under 350 words.
-
-${resumeText
-  ? `Roast this resume at ${roastLevel} level:\n\n${resumeText.slice(0, 3000)}`
-  : `Roast a generic Indian fresher resume (Computer Science, no real projects, lists MS Office as skill, has an objective statement, has a passport photo). Level: ${roastLevel}`}`;
-
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=REACT_APP_GEMINI_`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-          }),
-        }
-      );
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.REACT_APP_GROQ_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "system",
+              content: `You are RoastBot — a brutally funny resume roaster for Indian job seekers. You roast resumes with sharp wit, pop culture references, and genuinely useful career advice hidden inside the jokes. You know the Indian job market deeply — TCS, Infosys, fresher culture, MBA rage, "good at MS Office", etc. Always end with 3 actual actionable tips labeled "Redemption Arc:". ${levelInstructions[roastLevel]} Format with bold headers using **text** syntax. Keep it under 350 words.`,
+            },
+            {
+              role: "user",
+              content: resumeText
+                ? `Roast this resume at ${roastLevel} level:\n\n${resumeText.slice(0, 3000)}`
+                : `Roast a generic Indian fresher resume (Computer Science, no real projects, lists MS Office as skill, has an objective statement, has a passport photo). Level: ${roastLevel}`,
+            },
+          ],
+        }),
+      });
 
       const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || DEMO_ROAST;
+      const text = data.choices?.[0]?.message?.content || DEMO_ROAST;
       setRoastResult(text);
       setStep("result");
     } catch {
