@@ -62,7 +62,6 @@ export default function RoastMyResume() {
   };
 
   const callRoastAPI = async () => {
-    console.log("GROQ KEY:", process.env.REACT_APP_GROQ_KEY);
     setLoading(true);
     setStep("roasting");
 
